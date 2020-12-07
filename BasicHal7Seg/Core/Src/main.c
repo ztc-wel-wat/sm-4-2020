@@ -22,7 +22,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -177,19 +176,11 @@ int main(void) {
 	/* USER CODE BEGIN WHILE */
 	uint16_t r = 0, g = 0, b = 0;
 	while (1) {
-//		HAL_Delay(1);
-		r++;
-		if (r == 0xFF) {
-			r = 0;
-			g++;
-			if (g == 0xFF) {
-				g = 0;
-				b++;
-				if (b == 0xFF) {
-					b = 0;
-				}
-			}
-		}
+		r = rand() & 0xFF;
+		g = rand() & 0xFF;
+		b = rand() & 0xFF;
+		HAL_Delay(100);
+
 		LED_RGB_SetIntensity(r, g, b);
 		/* USER CODE END WHILE */
 
