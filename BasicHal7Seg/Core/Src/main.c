@@ -22,6 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stdio.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +44,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef hlpuart1;
+
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
@@ -72,12 +76,15 @@ S7_DIG1_Pin };
 
 uint16_t display[4];
 
+char buffer[32];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_LPUART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -134,6 +141,31 @@ void LED_RGB_SetIntensity(uint16_t r, uint16_t g, uint16_t b) {
 	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_3, g);
 }
 
+int __io_putchar(int ch) {
+//	HAL_UART_Transmit(&hlpuart1, (uint8_t* )&ch, 1, 100);
+
+//	UART_Wai
+	while ((LPUART1->ISR & USART_ISR_TXE) != USART_ISR_TXE)
+		;
+
+	LPUART1->TDR = (uint8_t) ch;
+
+	return ch;
+}
+
+int __io_getchar(void) {
+
+	while ((LPUART1->ISR & USART_ISR_RXNE) != USART_ISR_RXNE)
+		;
+
+	return (LPUART1->RDR & USART_RDR_RDR) & 0xFF;
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+
+}
+
+
 /* USER CODE END 0 */
 
 /**
@@ -164,6 +196,7 @@ int main(void) {
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	MX_TIM4_Init();
+	MX_LPUART1_UART_Init();
 	/* USER CODE BEGIN 2 */
 
 	HAL_TIM_Base_Start(&htim4);
@@ -175,16 +208,21 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	uint16_t r = 0, g = 0, b = 0;
+		HAL_UART_Receive_IT(&hlpuart1, (uint8_t *)buffer, 4);
 	while (1) {
 		r = rand() & 0xFF;
 		g = rand() & 0xFF;
 		b = rand() & 0xFF;
-		HAL_Delay(100);
+//		while(__io_getchar() != '1');
 
 		LED_RGB_SetIntensity(r, g, b);
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
+//		sprintf(buffer, "R = %3d; G = %3d; B = %3d\n", r, g, b);
+		printf("R = %3d; G = %3d; B = %3d\n", r, g, b);
+		HAL_Delay(100);
+//		HAL_UART_Transmit(&hlpuart1, (uint8_t *)buffer, strlen(buffer), 100);
 	}
 	/* USER CODE END 3 */
 }
@@ -196,6 +234,7 @@ int main(void) {
 void SystemClock_Config(void) {
 	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
 	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
 
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
@@ -220,12 +259,49 @@ void SystemClock_Config(void) {
 	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
 		Error_Handler();
 	}
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1;
+	PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+		Error_Handler();
+	}
 	/** Configure the main internal regulator output voltage
 	 */
 	if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1)
 			!= HAL_OK) {
 		Error_Handler();
 	}
+}
+
+/**
+ * @brief LPUART1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_LPUART1_UART_Init(void) {
+
+	/* USER CODE BEGIN LPUART1_Init 0 */
+
+	/* USER CODE END LPUART1_Init 0 */
+
+	/* USER CODE BEGIN LPUART1_Init 1 */
+
+	/* USER CODE END LPUART1_Init 1 */
+	hlpuart1.Instance = LPUART1;
+	hlpuart1.Init.BaudRate = 115200;
+	hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
+	hlpuart1.Init.StopBits = UART_STOPBITS_1;
+	hlpuart1.Init.Parity = UART_PARITY_NONE;
+	hlpuart1.Init.Mode = UART_MODE_TX_RX;
+	hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if (HAL_UART_Init(&hlpuart1) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN LPUART1_Init 2 */
+
+	/* USER CODE END LPUART1_Init 2 */
+
 }
 
 /**
@@ -300,6 +376,7 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 
 	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 	__HAL_RCC_GPIOG_CLK_ENABLE();
 	__HAL_RCC_GPIOD_CLK_ENABLE();

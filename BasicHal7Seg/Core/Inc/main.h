@@ -61,6 +61,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define vCOM_TX_Pin GPIO_PIN_0
+#define vCOM_TX_GPIO_Port GPIOC
+#define vCOM_RX_Pin GPIO_PIN_1
+#define vCOM_RX_GPIO_Port GPIOC
 #define S7_DIG1_Pin GPIO_PIN_2
 #define S7_DIG1_GPIO_Port GPIOB
 #define S7_SEG_A_Pin GPIO_PIN_0
